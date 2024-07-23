@@ -1,4 +1,4 @@
-# intenend for python3
+# %%  intenend for python3
 
 import logging
 import os
@@ -7,23 +7,31 @@ import sys
 import subprocess
 import re
 
-# setup logging
+
+# %% setup logging
+
 logging.basicConfig(
     level=logging.DEBUG,
     format=f"%(levelname)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
-DEBUG_LINE = '#'*40
 
-logger.debug(DEBUG_LINE)
-logger.debug(DEBUG_LINE)
+DEBUG_LINE = '#'*40
+def print_section(name: str) -> None:
+    print('')
+    print(DEBUG_LINE)
+    print(f'# {name}')
+    print(DEBUG_LINE)
+
+print_section('START')
 logger.info(f'Start of {os.path.basename(__file__)}')
 
-# check if all system programs are here
-logger.debug(DEBUG_LINE)
-logger.info(f'Checking system dependencies...')
 
-# git ?
+# %%  check if all system programs are here
+print_section('SYSTEM DEPENDENCIES')
+
+
+# %%  git ?
 path_git = shutil.which('git')
 if path_git:
     logger.info('Git is installed')
@@ -31,7 +39,8 @@ else:
     logger.critical('Git does not seem to be present in the system')
     sys.exit(1)
 
-# docker ?
+
+# %%  docker ?
 path_docker = shutil.which('docker')
 if path_docker:
     logger.info('Docker is installed')
@@ -39,8 +48,9 @@ else:
     logger.critical('Docker does not seem to be present in the system')
     sys.exit(1)
 
-# docker version ok ?
-result = subprocess.run(['docker', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+# %%  docker version ok ?
+result = subprocess.run(['docker', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
 version_output = result.stdout.strip()
 print(version_output)
 pattern = r"Docker version (\d+\.\d+\.\d+),"
@@ -55,23 +65,29 @@ if int(docker_version) >= maximum_docker_version:
     sys.exit(1)
 logger.info('Docker version is ok')
 
-logger.info('... all depencies checked')
-logger.debug(DEBUG_LINE)
 
-# setup paths
+# %%  setup paths
 cwd = os.getcwd()
 logger.info(f'Current working directory : {cwd}')
-path_PIS = os.path.join(cwd, 'python-ismrmrd-server')
+repo_path = os.path.join(cwd, 'python-ismrmrd-server')
+repo_dockerfile_path = os.path.join(repo_path, 'docker', 'Dockerfile')
 
-# python-ismrmrd-server : this has the client / server fonctionality
-PIS_git_adress = 'https://github.com/kspaceKelvin/python-ismrmrd-server'
-PIS_name = 'python-ismrmrd-server'
-if os.path.exists(path_PIS):
-    logger.info(f'Found {PIS_name}, do not clone it again ')
+
+# %%  python-ismrmrd-server : this has the client / server fonctionality
+print_section('CHECK or CLONE python-ismrmrd-server')
+git_adress = 'https://github.com/kspaceKelvin/python-ismrmrd-server'
+if os.path.exists(repo_path):
+    logger.info('Found python-ismrmrd-server, do not clone it again ')
 else:
-    logger.info(f'{PIS_name} not found, cloning it...')
-    result = subprocess.run(['git', 'clone', PIS_git_adress])
+    logger.info('python-ismrmrd-server not found, cloning it...')
+    subprocess.run(['git', 'clone', git_adress], check=True)
 
 
-logger.info('All done !')
+# %%  build docker image for python-ismrmrd-server
+# this image is the starting point, that will be refined latter
+subprocess.run(['docker', 'build', '--tag', 'python-ismrmrd-server', '--file', repo_dockerfile_path, './'], check=True)
+
+
+# %%  END
+print_section('All done !')
 sys.exit(0)
