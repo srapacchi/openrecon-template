@@ -13,9 +13,14 @@ logging.basicConfig(
     format=f"%(levelname)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
+DEBUG_LINE = '#'*40
+
+logger.debug(DEBUG_LINE)
+logger.debug(DEBUG_LINE)
 logger.info(f'Start of {os.path.basename(__file__)}')
 
 # check if all system programs are here
+logger.debug(DEBUG_LINE)
 logger.info(f'Checking system dependencies...')
 
 # git ?
@@ -51,6 +56,7 @@ if int(docker_version) >= maximum_docker_version:
 logger.info('Docker version is ok')
 
 logger.info('... all depencies checked')
+logger.debug(DEBUG_LINE)
 
 # setup paths
 cwd = os.getcwd()
@@ -61,7 +67,10 @@ path_PIS = os.path.join(cwd, 'python-ismrmrd-server')
 PIS_git_adress = 'https://github.com/kspaceKelvin/python-ismrmrd-server'
 PIS_name = 'python-ismrmrd-server'
 if os.path.exists(path_PIS):
-    logger.info(f'Found {PIS_name}, don\'t clone it again ')
+    logger.info(f'Found {PIS_name}, do not clone it again ')
+else:
+    logger.info(f'{PIS_name} not found, cloning it...')
+    result = subprocess.run(['git', 'clone', PIS_git_adress])
 
 
 logger.info('All done !')
