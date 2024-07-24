@@ -1,5 +1,6 @@
 # local stuff
-python-ismrmrd-server
+python-ismrmrd-server/
+from_siemens/
 
 ########################################
 

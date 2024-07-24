@@ -1,11 +1,17 @@
 # intenend for python3
 
+# external modules
+import jsonschema
+
+# builtin modules
 import logging
 import os
 import shutil
 import sys
 import subprocess
 import re
+import base64
+import json
 
 
 def print_section(name: str) -> None:
@@ -63,7 +69,7 @@ def clone_server(repo_path: str) -> None:
     print_section('CHECK or CLONE `python-ismrmrd-server`')
     git_adress = 'https://github.com/kspaceKelvin/python-ismrmrd-server'
     if os.path.exists(repo_path):
-        logger.info('Found `python-ismrmrd-server` dir, do not clone it again ')
+        logger.info(f'Found `python-ismrmrd-server` dir, do not clone it again : {repo_path}')
     else:
         logger.info('`python-ismrmrd-server` not found, cloning it...')
         subprocess.run(['git', 'clone', git_adress], check=True)
@@ -82,6 +88,25 @@ def build_server(repo_dockerfile_path: str) -> None:
         # this image is the starting point, that will be refined latter
         logger.info('building docker image `python-ismrmrd-server`')
         subprocess.run(['docker', 'build', '--tag', 'python-ismrmrd-server', '--file', repo_dockerfile_path, './'], check=True)
+
+
+def check_from_siemens(from_siemens_dir: str) -> None:
+    logger = logging.getLogger()
+    
+    json_name = 'OpenReconSchema_1.1.0.json'
+    path_json = os.path.join(from_siemens_dir, json_name)
+
+    if os.path.exists(from_siemens_dir):
+        logger.info(f'`from_siemens` dir found : {from_siemens_dir}')
+    else:
+        os.mkdir(from_siemens_dir)
+        logger.critical(f'`from_siemens` dir created : you need to add inside the {json_name} file')
+        sys.exit(1)
+
+    if os.path.exists(path_json):
+        logger.info(f'`{json_name}` found : {path_json}')
+    else:
+        logger.critical(f'`{json_name}` NOT found : please get form Siemens (magnetom.net) and copy in the dir `{from_siemens_dir}`')
 
 
 def main():
@@ -109,6 +134,11 @@ def main():
     repo_dockerfile_path = os.path.join(repo_path, 'docker', 'Dockerfile')
     clone_server(repo_path)
     build_server(repo_dockerfile_path)
+
+    # from_siemens
+    print_section('`from_siemens` dir and its content')
+    from_siemens_dir = os.path.join(cwd, 'from_siemens')
+    check_from_siemens(from_siemens_dir)
 
     # END
     print_section('All done !')
