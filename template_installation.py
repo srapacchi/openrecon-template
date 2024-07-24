@@ -93,20 +93,25 @@ def build_server(repo_dockerfile_path: str) -> None:
 def check_from_siemens(from_siemens_dir: str) -> None:
     logger = logging.getLogger()
     
-    json_name = 'OpenReconSchema_1.1.0.json'
-    path_json = os.path.join(from_siemens_dir, json_name)
+    file_names = [
+        'OpenReconSchema_1.1.0.json',
+        'i2i.py',
+        'i2i_json_ui.json',
+    ]
 
     if os.path.exists(from_siemens_dir):
         logger.info(f'`from_siemens` dir found : {from_siemens_dir}')
     else:
         os.mkdir(from_siemens_dir)
-        logger.critical(f'`from_siemens` dir created : you need to add inside the {json_name} file')
+        logger.critical(f'`from_siemens` dir created : you need to add inside 3 files : {", ".join(file_names)}, ')
         sys.exit(1)
 
-    if os.path.exists(path_json):
-        logger.info(f'`{json_name}` found : {path_json}')
-    else:
-        logger.critical(f'`{json_name}` NOT found : please get form Siemens (magnetom.net) and copy in the dir `{from_siemens_dir}`')
+    for file in file_names:
+        pth = os.path.join(from_siemens_dir, file)
+        if os.path.exists(pth):
+            logger.info(f'`{file}` found : {pth}')
+        else:
+            logger.critical(f'`{file}` NOT found : please get form Siemens (magnetom.net) and copy in the dir `{from_siemens_dir}`')
 
 
 def main():
