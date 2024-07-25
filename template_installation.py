@@ -10,8 +10,9 @@ import shutil
 import sys
 import subprocess
 import re
-import base64
+import datetime
 import json
+import base64
 
 
 def print_section(name: str) -> None:
@@ -143,7 +144,7 @@ def create_pdf(file_path: str, lines_of_text: list[str]) -> None:
     
     trailer = f'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{xref_entry_offsets[-1]}\n%%EOF'.encode()
     
-    # Write everything to the file
+    # Write
     with open(file_path, 'wb') as f:
         f.write(pdf_header)
         f.write(pdf_body)
@@ -181,6 +182,43 @@ def main():
     print_section('`from_siemens` dir and its content')
     from_siemens_dir = os.path.join(cwd, 'from_siemens')
     check_from_siemens(from_siemens_dir)
+
+    # build
+    print_section('BUILD')
+
+    # prep build dir
+    build_path = os.path.join(cwd, 'build')
+    if os.path.exists(build_path):
+        logger.info(f'`build` dir found : {build_path}')
+    else:
+        os.mkdir(build_path)
+        logger.info(f'`build` dir created : {build_path}')
+
+    # prep some paths
+    schema_json_path = os.path.join(from_siemens_dir, 'OpenReconSchema_1.1.0..json')
+    ui_json_path     = os.path.join(from_siemens_dir, 'i2i_json_ui.json')
+    py_path          = os.path.join(from_siemens_dir, 'i2i.py')
+    docker_path      = os.path.join(build_path      , 'Dockerfile')
+    pdf_path         = os.path.join(build_path      , 'i2i.pdf')
+
+    # prep info
+    version              = '1.0.0'
+    vendor               = 'openrecon-template'
+    name                 = 'i2i_openrecon-tempalte'
+    manufacturer_address = 'ICM, Paris, France'
+
+    # get SDK JSON content and modify it for this demo
+    logger.info('load UI JSON content')
+    with open(ui_json_path, 'r') as fid:
+        json_content = json.load(fid)
+    json_content['general']['name']['en'] = name
+    json_content['general']['version'] = version
+    json_content['general']['information']['en'] = name + '_' + version
+    json_content['general']['id'] = name
+    json_content['general']['regulatory_information']['device_trade_name'] = name
+    json_content['general']['regulatory_information']['production_identifier'] = name + '_' + version
+    json_content['general']['regulatory_information']['manufacturer_address'] = version
+    json_content['general']['regulatory_information']['manufacture_date'] = datetime.datetime.today().strftime('%Y-%m-%d_%Hh%Mm%S')
 
     # lines = [
     #     "line1",
