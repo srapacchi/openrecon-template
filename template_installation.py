@@ -114,6 +114,43 @@ def check_from_siemens(from_siemens_dir: str) -> None:
             logger.critical(f'`{file}` NOT found : please get form Siemens (magnetom.net) and copy in the dir `{from_siemens_dir}`')
 
 
+def create_pdf(file_path: str, lines_of_text: list[str]) -> None:
+    pdf_header = b'%PDF-1.4\n'
+    
+    objects = []
+    objects.append(b'1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n') # Object 1: Catalog
+    objects.append(b'2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n') # Object 2: Pages
+    objects.append(b'3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n') # Object 3: Page
+    
+    # Object 4: Page content
+    content_stream = "BT /F1 24 Tf 100 750 Td" 
+    for line in lines_of_text:
+        content_stream += f" ({line}) Tj 0 -30 Td"
+    content_stream += " ET"
+    objects.append(f'4 0 obj\n<< /Length {len(content_stream)} >>\nstream\n{content_stream}\nendstream\nendobj\n'.encode())
+    objects.append(b'5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n') # Object 5: Font
+    
+    pdf_body = b''.join(objects)
+    
+    # Cross-reference table
+    xref_offset = len(pdf_header)
+    xref = b'xref\n0 6\n0000000000 65535 f \n'
+    xref_entry_offsets = [xref_offset]
+    for obj in objects:
+        xref_entry_offsets.append(xref_entry_offsets[-1] + len(obj))
+    for offset in xref_entry_offsets:
+        xref += f'{offset:010} 00000 n \n'.encode()
+    
+    trailer = f'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{xref_entry_offsets[-1]}\n%%EOF'.encode()
+    
+    # Write everything to the file
+    with open(file_path, 'wb') as f:
+        f.write(pdf_header)
+        f.write(pdf_body)
+        f.write(xref)
+        f.write(trailer)
+
+
 def main():
 
     # setup logging
@@ -144,6 +181,12 @@ def main():
     print_section('`from_siemens` dir and its content')
     from_siemens_dir = os.path.join(cwd, 'from_siemens')
     check_from_siemens(from_siemens_dir)
+
+    # lines = [
+    #     "line1",
+    #     "line2",
+    # ]
+    # create_pdf('minimalist.pdf', lines)
 
     # END
     print_section('All done !')
