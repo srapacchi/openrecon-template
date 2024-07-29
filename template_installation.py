@@ -23,15 +23,27 @@ def print_section(name: str) -> None:
     print(DEBUG_LINE)
 
 
+def check_zip() -> None:
+    logger = logging.getLogger()
+
+    # zip ?
+    path_git = shutil.which('zip')
+    if path_git:
+        logger.info('`zip` is installed')
+    else:
+        logger.critical('`zip` does not seem to be present in the system')
+        sys.exit(1)
+
+
 def check_git() -> None:
     logger = logging.getLogger()
 
     # git ?
     path_git = shutil.which('git')
     if path_git:
-        logger.info('Git is installed')
+        logger.info('`git` is installed')
     else:
-        logger.critical('Git does not seem to be present in the system')
+        logger.critical('`git` does not seem to be present in the system')
         sys.exit(1)
 
 
@@ -41,9 +53,9 @@ def check_docker() -> None:
     # docker ?
     path_docker = shutil.which('docker')
     if path_docker:
-        logger.info('Docker is installed')
+        logger.info('`docker` is installed')
     else:
-        logger.critical('Docker does not seem to be present in the system')
+        logger.critical('`Docker` does not seem to be present in the system')
         sys.exit(1)
 
     # docker version ok ?
@@ -154,6 +166,10 @@ def create_pdf(file_path: str, lines_of_text: list[str]) -> None:
 
 def main():
 
+    #############
+    ### setup ###
+    #############
+
     # setup logging
     logging.basicConfig(
         level=logging.DEBUG,
@@ -163,9 +179,11 @@ def main():
 
     print_section('START')
     logger.info(f'Start of {os.path.basename(__file__)}')
+    logger.warning('Untill the BUILD part, there is a "skip if already done" feature')
 
     # check if all system programs are here
     print_section('SYSTEM DEPENDENCIES')
+    check_zip()
     check_git()
     check_docker()
 
@@ -183,8 +201,12 @@ def main():
     from_siemens_dir = os.path.join(cwd, 'from_siemens')
     check_from_siemens(from_siemens_dir)
 
-    # build
+    #############
+    ### build ###
+    #############
+
     print_section('BUILD')
+    logger.warning('From now on, all steps will not have a "skip if already done" feature')
 
     # prep build dir
     build_path = os.path.join(cwd, 'build')
@@ -195,13 +217,12 @@ def main():
         logger.info(f'`build` dir created : {build_path}')
 
     # prep some paths
-    siemens_schema_json_path = os.path.join(from_siemens_dir, 'OpenReconSchema_1.1.0.json')
-    siemens_ui_json_path     = os.path.join(from_siemens_dir, 'i2i_json_ui.json')
-    siemens_py_path          = os.path.join(from_siemens_dir, 'i2i.py')
-    build_ui_json_path       = os.path.join(build_path      , 'i2i_json_ui.json')
-    build_py_path            = os.path.join(build_path      , 'i2i.py')
-    build_docker_path        = os.path.join(build_path      , 'openrecon-template.Dockerfile')
-    build_pdf_path           = os.path.join(build_path      , 'i2i.pdf')
+    siemens_schema_json_path = os.path.join(from_siemens_dir, 'OpenReconSchema_1.1.0.json'   )
+    siemens_ui_json_path     = os.path.join(from_siemens_dir, 'i2i_json_ui.json'             )
+    siemens_py_path          = os.path.join(from_siemens_dir, 'i2i.py'                       )
+    build_ui_json_path       = os.path.join(build_path      , 'i2i_json_ui.json'             )
+    build_py_path            = os.path.join(build_path      , 'i2i.py'                       )
+    build_pdf_path           = os.path.join(build_path      , 'i2i.pdf'                      )
 
     # get SDK JSON content and modify it for this demo
     logger.info(f'load UI JSON content : {siemens_ui_json_path}')
@@ -212,7 +233,7 @@ def main():
     cmdline  = 'CMD [ "python3", "/opt/code/python-ismrmrd-server/main.py", "-v", "-H=0.0.0.0", "-p=9002", "-l=/tmp/python-ismrmrd-server.log", "--defaultConfig=i2i"]'
     version                         = '1.2.3' # major.minor.patch
     vendor                          = 'openrecon-template'
-    name                            = 'i2i_openrecon-template'
+    name                            = 'i2i-openrecon-template'
     manufacturer_address            = 'AdressOf openrecon-template'
     mad_in                          = 'TheInternet'
     gtin                            = 'myGTIN'
@@ -221,6 +242,13 @@ def main():
     special_operating_instructions  = ''
     additional_relevant_information = ''
 
+    # other file/path
+    dockerfile_basename = f'OpenRecon_{vendor}_{name}:V{version}'.lower()
+    zip_basename        = f'OpenRecon_{vendor}_{name}_V{version}'
+    build_docker_path   = os.path.join(build_path, f'{zip_basename}.Dockerfile')
+    build_zip_path      = os.path.join(build_path, f'{zip_basename}.zip')
+
+    # update content
     json_content['general']['name'       ]['en'] = name
     json_content['general']['version'    ]       = version
     json_content['general']['vendor'     ]       = vendor
@@ -289,20 +317,34 @@ def main():
             '\n'])
         
     # build Docker image
-    result = subprocess.run(['docker', 'images', name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
-    output = result.stdout.strip()
-    if name in output:
-        logger.info(f'docker image `{name}` already built')
-    else:
-        logger.info(f'building docker image `{name}` from Docker file {build_docker_path}')
-        subprocess.run(['docker', 'build', '--tag', name, '--file', build_docker_path, cwd], check=True)
+    # result = subprocess.run(['docker', 'images', name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+    # output = result.stdout.strip()
+    # if name in output:
+    #     logger.info(f'docker image `{name}` already built')
+    # else:
+    logger.info(f'building docker image `{dockerfile_basename}` from Docker file {build_docker_path}')
+    subprocess.run(['docker', 'build', '--tag', dockerfile_basename, '--file', build_docker_path, cwd], check=True)
 
-    
-    # lines = [
-    #     "line1",
-    #     "line2",
-    # ]
-    # create_pdf('minimalist.pdf', lines)
+    # save docker image in a .tar
+    build_tar_path = os.path.join(build_path, f'{zip_basename}.tar')
+    logger.info(f'(1/2) saving image `{dockerfile_basename}` in a .tar {build_tar_path}')
+    subprocess.run(['docker', 'save', '-o', build_tar_path, dockerfile_basename], check=True)
+    logger.info(f'(2/2) saving image DONE')
+
+    # generate PDF
+    lines = [
+        f'vendor={vendor}',
+        f'name={name}',
+        f'version={version}',
+    ]
+    build_pdf_path = os.path.join(build_path, f'{zip_basename}.pdf')
+    logger.info(f'write PDF file : {build_pdf_path}')
+    create_pdf(file_path=build_pdf_path, lines_of_text=lines)
+
+    # save everything in a ZIP file
+    logger.info(f'(1/2) zip all files : {build_zip_path}')
+    subprocess.run(['zip', build_zip_path, build_tar_path, build_pdf_path], check=True)
+    logger.info(f'(1/2) zip all files DONE')
 
     # END
     print_section('All done !')
