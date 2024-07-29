@@ -199,7 +199,8 @@ def main():
     siemens_ui_json_path     = os.path.join(from_siemens_dir, 'i2i_json_ui.json')
     siemens_py_path          = os.path.join(from_siemens_dir, 'i2i.py')
     build_ui_json_path       = os.path.join(build_path      , 'i2i_json_ui.json')
-    build_docker_path        = os.path.join(build_path      , 'Dockerfile')
+    build_py_path            = os.path.join(build_path      , 'i2i.py')
+    build_docker_path        = os.path.join(build_path      , 'openrecon-template.Dockerfile')
     build_pdf_path           = os.path.join(build_path      , 'i2i.pdf')
 
     # get SDK JSON content and modify it for this demo
@@ -208,6 +209,7 @@ def main():
         json_content = json.load(fid)
 
     # prep info
+    cmdline  = 'CMD [ "python3", "/opt/code/python-ismrmrd-server/main.py", "-v", "-H=0.0.0.0", "-p=9002", "-l=/tmp/python-ismrmrd-server.log", "--defaultConfig=i2i"]'
     version                         = '1.2.3' # major.minor.patch
     vendor                          = 'openrecon-template'
     name                            = 'i2i_openrecon-tempalte'
@@ -239,10 +241,10 @@ def main():
 
     # load JSON Schema, to check if our updated JSON is ok
     logger.info(f'load JSON Schema : {siemens_schema_json_path}')
-    with open(siemens_schema_json_path, 'r') as fid:
-        schema_content = json.load(fid)
-    validator = jsonschema.Draft7Validator(schema_content)
-    errors = list(validator.iter_errors(json_content))
+    with open(file=siemens_schema_json_path, mode='r') as fid:
+        schema_content = json.load(fp=fid)
+    validator = jsonschema.Draft7Validator(schema=schema_content)
+    errors = list(validator.iter_errors(instance=json_content))
     if errors:
         logger.error('our Json vs. Schema errors :')
         for error in errors:
@@ -252,10 +254,34 @@ def main():
 
     # write the updated json in the `build` dir
     logger.info(f'write update UI JSON content : {build_ui_json_path}')
-    with open(build_ui_json_path, 'w') as fid:
-        json.dump(json_content, fid, indent=4)
+    with open(file=build_ui_json_path, mode='w') as fid:
+        json.dump(obj=json_content, fp=fid, indent=4)
+    encoded_json_content = base64.b64encode((json.dumps(obj=json_content,indent=2)).encode('utf-8')).decode('utf-8')
 
+    # copy the python module MRD `client` to execute
+    logger.info(f'copy : SRC={siemens_py_path} DST={build_py_path}')
+    shutil.copy(src=siemens_py_path,dst=build_py_path)
+    logger.info(f'the `build` .py file will be latter added in the Docker image : {build_py_path}')
 
+    # write the Dockerfile content
+    logger.info(f'Write `build` Dockerfile : {build_docker_path}')
+    with open(file=build_docker_path, mode='w') as fid:
+        
+        fid.writelines([
+            '# import python-ismrmrd-server as starting point \n',
+            f'FROM python-ismrmrd-server:lastest \n',
+            '\n'])
+        
+        fid.writelines([
+            '# mandatory for OpenRecon (see OR documentation) \n',
+            f'LABEL "com.siemens-healthineers.magneticresonance.openrecon.metadata:1.1.0"="{encoded_json_content}" \n',
+            '\n'])
+        
+        fid.writelines([
+            '# new CMD line \n',
+            f'{cmdline} \n',
+            '\n'])
+        
     # lines = [
     #     "line1",
     #     "line2",
