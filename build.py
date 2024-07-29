@@ -78,7 +78,7 @@ def check_docker() -> None:
 def clone_server(repo_path: str) -> None:
     logger = logging.getLogger()
 
-    # python-ismrmrd-server : this has the client / server fonctionality
+    # python-ismrmrd-server : this has the client / server functionality
     print_section('CHECK or CLONE `python-ismrmrd-server`')
     git_adress = 'https://github.com/kspaceKelvin/python-ismrmrd-server'
     if os.path.exists(repo_path):
@@ -278,7 +278,7 @@ def main():
         for error in errors:
                 logger.error(error)
         sys.exit(1)
-    logger.info(f'No error in out JSON comapared against the Schema')
+    logger.info(f'No error in out JSON compared against the Schema')
 
     # write the updated json in the `build` dir
     logger.info(f'write update UI JSON content : {build_ui_json_path}')
