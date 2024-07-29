@@ -79,7 +79,6 @@ def clone_server(repo_path: str) -> None:
     logger = logging.getLogger()
 
     # python-ismrmrd-server : this has the client / server functionality
-    print_section('CHECK or CLONE `python-ismrmrd-server`')
     git_adress = 'https://github.com/kspaceKelvin/python-ismrmrd-server'
     if os.path.exists(repo_path):
         logger.info(f'Found `python-ismrmrd-server` dir, do not clone it again : {repo_path}')
@@ -180,6 +179,9 @@ def main():
     print_section('START')
     logger.info(f'Start of {os.path.basename(__file__)}')
     logger.warning('Untill the BUILD part, there is a "skip if already done" feature')
+    cwd = os.getcwd()
+    logger.info(f'Current working directory : {cwd}')
+
 
     # check if all system programs are here
     print_section('SYSTEM DEPENDENCIES')
@@ -189,8 +191,6 @@ def main():
 
     # python-ismrmrd-server : clone & build docker image
     print_section('CLONE & BUILD SERVER')
-    cwd = os.getcwd()
-    logger.info(f'Current working directory : {cwd}')
     repo_path            = os.path.join(cwd, 'python-ismrmrd-server')
     repo_dockerfile_path = os.path.join(repo_path, 'docker', 'Dockerfile')
     clone_server(repo_path)
@@ -217,12 +217,12 @@ def main():
         logger.info(f'`build` dir created : {build_path}')
 
     # prep some paths
-    siemens_schema_json_path = os.path.join(from_siemens_dir, 'OpenReconSchema_1.1.0.json'   )
-    siemens_ui_json_path     = os.path.join(from_siemens_dir, 'i2i_json_ui.json'             )
-    siemens_py_path          = os.path.join(from_siemens_dir, 'i2i.py'                       )
-    build_ui_json_path       = os.path.join(build_path      , 'i2i_json_ui.json'             )
-    build_py_path            = os.path.join(build_path      , 'i2i.py'                       )
-    build_pdf_path           = os.path.join(build_path      , 'i2i.pdf'                      )
+    siemens_schema_json_path = os.path.join(from_siemens_dir, 'OpenReconSchema_1.1.0.json')
+    siemens_ui_json_path     = os.path.join(from_siemens_dir, 'i2i_json_ui.json'          )
+    siemens_py_path          = os.path.join(from_siemens_dir, 'i2i.py'                    )
+    build_ui_json_path       = os.path.join(build_path      , 'i2i_json_ui.json'          )
+    build_py_path            = os.path.join(build_path      , 'i2i.py'                    )
+    build_pdf_path           = os.path.join(build_path      , 'i2i.pdf'                   )
 
     # get SDK JSON content and modify it for this demo
     logger.info(f'load UI JSON content : {siemens_ui_json_path}')
@@ -244,9 +244,9 @@ def main():
 
     # other file/path
     dockerfile_basename = f'OpenRecon_{vendor}_{name}:V{version}'.lower()
-    zip_basename        = f'OpenRecon_{vendor}_{name}_V{version}'
-    build_docker_path   = os.path.join(build_path, f'{zip_basename}.Dockerfile')
-    build_zip_path      = os.path.join(build_path, f'{zip_basename}.zip')
+    basename            = f'OpenRecon_{vendor}_{name}_V{version}'
+    build_docker_path   = os.path.join(build_path, f'{basename}.Dockerfile')
+    build_zip_path      = os.path.join(build_path, f'{basename}.zip')
 
     # update content
     json_content['general']['name'       ]['en'] = name
@@ -258,7 +258,7 @@ def main():
     json_content['general']['regulatory_information']['production_identifier'          ] = name + '_' + version
     json_content['general']['regulatory_information']['manufacturer_address'           ] = manufacturer_address
     json_content['general']['regulatory_information']['made_in'                        ] = mad_in
-    json_content['general']['regulatory_information']['manufacture_date'               ] = datetime.datetime.today().strftime('%Y-%m-%d_%Hh%Mm%S')
+    json_content['general']['regulatory_information']['manufacture_date'               ] = datetime.datetime.today().strftime('%Y-%m-%d')
     json_content['general']['regulatory_information']['material_number'                ] = name + '_' + version
     json_content['general']['regulatory_information']['gtin'                           ] = gtin
     json_content['general']['regulatory_information']['udi'                            ] = udi
@@ -294,39 +294,29 @@ def main():
     # write the Dockerfile content
     logger.info(f'Write `build` Dockerfile : {build_docker_path}')
     with open(file=build_docker_path, mode='w') as fid:
-        
         fid.writelines([
             '# import python-ismrmrd-server as starting point \n',
             f'FROM python-ismrmrd-server \n',
             '\n'])
-        
         fid.writelines([
             '# mandatory for OpenRecon (see OR documentation) \n',
             f'LABEL "com.siemens-healthineers.magneticresonance.openrecon.metadata:1.1.0"="{encoded_json_content}" \n',
             '\n'])
-        
         fid.writelines([
             '# copy the .py module \n',
             f'COPY {os.path.relpath(build_py_path, cwd)}  /opt/code/python-ismrmrd-server \n',
             '\n'])
-        
-        
         fid.writelines([
             '# new CMD line \n',
             f'{cmdline} \n',
             '\n'])
         
-    # build Docker image
-    # result = subprocess.run(['docker', 'images', name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
-    # output = result.stdout.strip()
-    # if name in output:
-    #     logger.info(f'docker image `{name}` already built')
-    # else:
+    # build docker image
     logger.info(f'building docker image `{dockerfile_basename}` from Docker file {build_docker_path}')
     subprocess.run(['docker', 'build', '--tag', dockerfile_basename, '--file', build_docker_path, cwd], check=True)
 
     # save docker image in a .tar
-    build_tar_path = os.path.join(build_path, f'{zip_basename}.tar')
+    build_tar_path = os.path.join(build_path, f'{basename}.tar')
     logger.info(f'(1/2) saving image `{dockerfile_basename}` in a .tar {build_tar_path}')
     subprocess.run(['docker', 'save', '-o', build_tar_path, dockerfile_basename], check=True)
     logger.info(f'(2/2) saving image DONE')
@@ -337,13 +327,13 @@ def main():
         f'name={name}',
         f'version={version}',
     ]
-    build_pdf_path = os.path.join(build_path, f'{zip_basename}.pdf')
+    build_pdf_path = os.path.join(build_path, f'{basename}.pdf')
     logger.info(f'write PDF file : {build_pdf_path}')
     create_pdf(file_path=build_pdf_path, lines_of_text=lines)
 
     # save everything in a ZIP file
     logger.info(f'(1/2) zip all files : {build_zip_path}')
-    subprocess.run(['zip', zip_basename+'.zip', zip_basename+'.tar', zip_basename+'.pdf'], check=True, cwd=build_path)
+    subprocess.run(['zip', basename+'.zip', basename+'.tar', basename+'.pdf'], check=True, cwd=build_path)
     logger.info(f'(1/2) zip all files DONE')
 
     # END
