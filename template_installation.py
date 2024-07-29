@@ -343,7 +343,7 @@ def main():
 
     # save everything in a ZIP file
     logger.info(f'(1/2) zip all files : {build_zip_path}')
-    subprocess.run(['zip', build_zip_path, build_tar_path, build_pdf_path], check=True)
+    subprocess.run(['zip', zip_basename+'.zip', zip_basename+'.tar', zip_basename+'.pdf'], check=True, cwd=build_path)
     logger.info(f'(1/2) zip all files DONE')
 
     # END
