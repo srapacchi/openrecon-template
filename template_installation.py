@@ -212,7 +212,7 @@ def main():
     cmdline  = 'CMD [ "python3", "/opt/code/python-ismrmrd-server/main.py", "-v", "-H=0.0.0.0", "-p=9002", "-l=/tmp/python-ismrmrd-server.log", "--defaultConfig=i2i"]'
     version                         = '1.2.3' # major.minor.patch
     vendor                          = 'openrecon-template'
-    name                            = 'i2i_openrecon-tempalte'
+    name                            = 'i2i_openrecon-template'
     manufacturer_address            = 'AdressOf openrecon-template'
     mad_in                          = 'TheInternet'
     gtin                            = 'myGTIN'
@@ -269,7 +269,7 @@ def main():
         
         fid.writelines([
             '# import python-ismrmrd-server as starting point \n',
-            f'FROM python-ismrmrd-server:lastest \n',
+            f'FROM python-ismrmrd-server \n',
             '\n'])
         
         fid.writelines([
@@ -278,10 +278,26 @@ def main():
             '\n'])
         
         fid.writelines([
+            '# copy the .py module \n',
+            f'COPY {os.path.relpath(build_py_path, cwd)}  /opt/code/python-ismrmrd-server \n',
+            '\n'])
+        
+        
+        fid.writelines([
             '# new CMD line \n',
             f'{cmdline} \n',
             '\n'])
         
+    # build Docker image
+    result = subprocess.run(['docker', 'images', name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+    output = result.stdout.strip()
+    if name in output:
+        logger.info(f'docker image `{name}` already built')
+    else:
+        logger.info(f'building docker image `{name}` from Docker file {build_docker_path}')
+        subprocess.run(['docker', 'build', '--tag', name, '--file', build_docker_path, cwd], check=True)
+
+    
     # lines = [
     #     "line1",
     #     "line2",
