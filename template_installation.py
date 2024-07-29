@@ -195,30 +195,52 @@ def main():
         logger.info(f'`build` dir created : {build_path}')
 
     # prep some paths
-    schema_json_path = os.path.join(from_siemens_dir, 'OpenReconSchema_1.1.0..json')
-    ui_json_path     = os.path.join(from_siemens_dir, 'i2i_json_ui.json')
-    py_path          = os.path.join(from_siemens_dir, 'i2i.py')
-    docker_path      = os.path.join(build_path      , 'Dockerfile')
-    pdf_path         = os.path.join(build_path      , 'i2i.pdf')
-
-    # prep info
-    version              = '1.0.0'
-    vendor               = 'openrecon-template'
-    name                 = 'i2i_openrecon-tempalte'
-    manufacturer_address = 'ICM, Paris, France'
+    siemens_schema_json_path = os.path.join(from_siemens_dir, 'OpenReconSchema_1.1.0..json')
+    siemens_ui_json_path     = os.path.join(from_siemens_dir, 'i2i_json_ui.json')
+    siemens_py_path          = os.path.join(from_siemens_dir, 'i2i.py')
+    build_ui_json_path       = os.path.join(build_path      , 'i2i_json_ui.json')
+    build_docker_path        = os.path.join(build_path      , 'Dockerfile')
+    build_pdf_path           = os.path.join(build_path      , 'i2i.pdf')
 
     # get SDK JSON content and modify it for this demo
-    logger.info('load UI JSON content')
-    with open(ui_json_path, 'r') as fid:
+    logger.info(f'load UI JSON content : {siemens_ui_json_path}')
+    with open(siemens_ui_json_path, 'r') as fid:
         json_content = json.load(fid)
-    json_content['general']['name']['en'] = name
-    json_content['general']['version'] = version
+
+    # prep info
+    version                         = '1.2.3' # major.minor.patch
+    vendor                          = 'openrecon-template'
+    name                            = 'i2i_openrecon-tempalte'
+    manufacturer_address            = 'AdressOf openrecon-template'
+    mad_in                          = 'TheInternet'
+    gtin                            = 'myGTIN'
+    uid                             = 'myUID'
+    safety_advices                  = ''
+    special_operating_instructions  = ''
+    additional_relevant_information = ''
+
+    json_content['general']['name'       ]['en'] = name
+    json_content['general']['version'    ]       = version
+    json_content['general']['vendor'     ]       = vendor
     json_content['general']['information']['en'] = name + '_' + version
-    json_content['general']['id'] = name
-    json_content['general']['regulatory_information']['device_trade_name'] = name
-    json_content['general']['regulatory_information']['production_identifier'] = name + '_' + version
-    json_content['general']['regulatory_information']['manufacturer_address'] = version
-    json_content['general']['regulatory_information']['manufacture_date'] = datetime.datetime.today().strftime('%Y-%m-%d_%Hh%Mm%S')
+    json_content['general']['id'         ]       = name
+    json_content['general']['regulatory_information']['device_trade_name'              ] = name
+    json_content['general']['regulatory_information']['production_identifier'          ] = name + '_' + version
+    json_content['general']['regulatory_information']['manufacturer_address'           ] = manufacturer_address
+    json_content['general']['regulatory_information']['made_in'                        ] = mad_in
+    json_content['general']['regulatory_information']['manufacture_date'               ] = datetime.datetime.today().strftime('%Y-%m-%d_%Hh%Mm%S')
+    json_content['general']['regulatory_information']['material_number'                ] = name + '_' + version
+    json_content['general']['regulatory_information']['gtin'                           ] = gtin
+    json_content['general']['regulatory_information']['uid'                            ] = uid
+    json_content['general']['regulatory_information']['safety_advices'                 ] = safety_advices
+    json_content['general']['regulatory_information']['special_operating_instructions' ] = special_operating_instructions
+    json_content['general']['regulatory_information']['additional_relevant_information'] = additional_relevant_information
+    # for more info, check `OpenReconJsonConfig.pdf`
+
+    # write the updated json in the `build` dir
+    logger.info(f'write update UI JSON content : {build_ui_json_path}')
+    with open(build_ui_json_path, 'w') as fid:
+        json.dump(json_content, fid, indent=4)
 
     # lines = [
     #     "line1",
