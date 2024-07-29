@@ -195,7 +195,7 @@ def main():
         logger.info(f'`build` dir created : {build_path}')
 
     # prep some paths
-    siemens_schema_json_path = os.path.join(from_siemens_dir, 'OpenReconSchema_1.1.0..json')
+    siemens_schema_json_path = os.path.join(from_siemens_dir, 'OpenReconSchema_1.1.0.json')
     siemens_ui_json_path     = os.path.join(from_siemens_dir, 'i2i_json_ui.json')
     siemens_py_path          = os.path.join(from_siemens_dir, 'i2i.py')
     build_ui_json_path       = os.path.join(build_path      , 'i2i_json_ui.json')
@@ -214,7 +214,7 @@ def main():
     manufacturer_address            = 'AdressOf openrecon-template'
     mad_in                          = 'TheInternet'
     gtin                            = 'myGTIN'
-    uid                             = 'myUID'
+    udi                             = 'myUDI'
     safety_advices                  = ''
     special_operating_instructions  = ''
     additional_relevant_information = ''
@@ -231,16 +231,30 @@ def main():
     json_content['general']['regulatory_information']['manufacture_date'               ] = datetime.datetime.today().strftime('%Y-%m-%d_%Hh%Mm%S')
     json_content['general']['regulatory_information']['material_number'                ] = name + '_' + version
     json_content['general']['regulatory_information']['gtin'                           ] = gtin
-    json_content['general']['regulatory_information']['uid'                            ] = uid
+    json_content['general']['regulatory_information']['udi'                            ] = udi
     json_content['general']['regulatory_information']['safety_advices'                 ] = safety_advices
     json_content['general']['regulatory_information']['special_operating_instructions' ] = special_operating_instructions
     json_content['general']['regulatory_information']['additional_relevant_information'] = additional_relevant_information
     # for more info, check `OpenReconJsonConfig.pdf`
 
+    # load JSON Schema, to check if our updated JSON is ok
+    logger.info(f'load JSON Schema : {siemens_schema_json_path}')
+    with open(siemens_schema_json_path, 'r') as fid:
+        schema_content = json.load(fid)
+    validator = jsonschema.Draft7Validator(schema_content)
+    errors = list(validator.iter_errors(json_content))
+    if errors:
+        logger.error('our Json vs. Schema errors :')
+        for error in errors:
+                logger.error(error)
+        sys.exit(1)
+    logger.info(f'No error in out JSON comapared against the Schema')
+
     # write the updated json in the `build` dir
     logger.info(f'write update UI JSON content : {build_ui_json_path}')
     with open(build_ui_json_path, 'w') as fid:
         json.dump(json_content, fid, indent=4)
+
 
     # lines = [
     #     "line1",
