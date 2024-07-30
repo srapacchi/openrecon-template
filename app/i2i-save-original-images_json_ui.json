@@ -1,0 +1,47 @@
+{
+  "general": {
+    "name": { "en": "" },
+    "version": "",
+    "vendor": "",
+    "information": { "en": "" },
+    "id": "",
+      "regulatory_information":{
+        "device_trade_name":"",
+        "production_identifier":"",
+        "manufacturer_address":"",
+        "made_in":"",
+        "manufacture_date":"",
+        "material_number":"",
+        "gtin":"",
+        "udi":"",
+        "safety_advices":"",
+        "special_operating_instructions":"",
+        "additional_relevant_information":""
+  }
+  },
+  "reconstruction": {
+    "transfer_protocol": {
+      "protocol": "ISMRMRD",
+      "version": "1.4.1"
+    },
+    "port": 9002,
+    "emitter": "image",
+    "injector": "image",
+    "can_process_adjustment_data": false,
+    "can_use_gpu": false,
+    "min_count_required_gpus": 0,
+    "min_required_gpu_memory": 2048,
+    "min_required_memory": 4096,
+    "min_count_required_cpu_cores": 1,
+    "content_qualification_type": "RESEARCH"
+  },
+  "parameters": [
+    {
+      "id": "checkbox",
+      "label": { "en": "Save original images" },
+      "type": "boolean",
+      "information": { "en": "" },
+      "default": true
+    }
+  ]
+}

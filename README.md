@@ -35,3 +35,42 @@ The script is quite verbose, helping troubleshooting at each step of the process
 All output files will be placed in a _build_ subdir.
 The finale file, ready for the upload on the magnet will be the _.zip_ file.
 
+
+# App
+
+## Objective : templatization & seperation of environements
+
+The `app` dir will contained the versionned code.  
+The `python-ismrmrd-server` dir is **NOT** versionned.  
+To _add_ your app files files in the `python-ismrmrd-server`, create symbolic links.
+
+## Howto
+
+Open a Terminal in the repository directory, then :
+
+```bash
+# setup Conda environnement
+conda create --name openrecon-template
+conda activate openrecon-template
+conda install python=3.12
+conda install ipython
+pip install ismrmrd
+
+# create .py file symbolic link in `python-ismrmrd-server`
+# this is how the MRD client/server will behave : all files/modules in the same dir
+cd python-ismrmrd-server
+ln -s ../app/i2i-save-original-images.py .
+```
+Repeat the `ln -s` for the files you need.
+
+## Test locally the app
+
+!!! TO DO !!!  
+some scripts that uses the images provided by in SDK...  
+server.py -> VSCode (for debugging)  
+cleint.py -> in terminal to start "sending" data to the server  
+!!! TO DO !!!  
+
+## Build
+
+!!! TO DO !!!
