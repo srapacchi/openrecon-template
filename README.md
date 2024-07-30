@@ -55,6 +55,8 @@ conda activate openrecon-template
 conda install python=3.12
 conda install ipython
 pip install ismrmrd
+pip install pydicom
+pip install pynetdicom
 
 # create .py file symbolic link in `python-ismrmrd-server`
 # this is how the MRD client/server will behave : all files/modules in the same dir
@@ -63,12 +65,13 @@ ln -s ../app/i2i-save-original-images.py .
 ```
 Repeat the `ln -s` for the files you need.
 
+
 ## Test locally the app
 
 !!! TO DO !!!  
 some scripts that uses the images provided by in SDK...  
 server.py -> VSCode (for debugging)  
-cleint.py -> in terminal to start "sending" data to the server  
+client.py -> in terminal to start "sending" data to the server  
 !!! TO DO !!!  
 
 ## Build

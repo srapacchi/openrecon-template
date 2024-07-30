@@ -151,6 +151,9 @@ def process_image(images, connection, config, metadata):
     # Invert image contrast
     data = maxVal-data
     data = np.abs(data)
+    ##########################################################################
+    np.random.shuffle(data)
+    ##########################################################################
     np.save(debugFolder + "/" + "imgInverted.npy", data)
 
     currentSeries = 0
