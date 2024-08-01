@@ -1,21 +1,21 @@
 {
   "general": {
-    "name": { "en": "" },
-    "version": "",
-    "vendor": "",
-    "information": { "en": "" },
-    "id": "",
+    "name": { "en": "i2i-save-original-images" },
+    "version": "1.0.0",
+    "vendor": "openrecon-template",
+    "information": { "en": "Invert contrast, with possibility to SaveOriginalImages" },
+    "id": "i2i-save-original-images",
       "regulatory_information":{
-        "device_trade_name":"",
-        "production_identifier":"",
-        "manufacturer_address":"",
-        "made_in":"",
-        "manufacture_date":"",
-        "material_number":"",
+        "device_trade_name":"i2i-save-original-images",
+        "production_identifier":"1.0.0",
+        "manufacturer_address":"https://github.com/benoitberanger/openrecon-template",
+        "made_in":"TheInternet",
+        "manufacture_date":"2023-08-01",
+        "material_number":"i2i-save-original-images_1.0.0",
         "gtin":"",
         "udi":"",
         "safety_advices":"",
-        "special_operating_instructions":"",
+        "special_operating_instructions":"Modifified version of the demo i2i, with an option to SaveOriginalImages",
         "additional_relevant_information":""
   }
   },

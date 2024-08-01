@@ -4,9 +4,12 @@
 import jsonschema
 
 # builtin modules
+import argparse
 import logging
 import os
+import glob
 import shutil
+import pprint
 import sys
 import subprocess
 import re
@@ -102,29 +105,54 @@ def build_server(repo_dockerfile_path: str) -> None:
         subprocess.run(['docker', 'build', '--tag', 'python-ismrmrd-server', '--file', repo_dockerfile_path, './'], check=True)
 
 
-def check_from_siemens(from_siemens_dir: str) -> None:
+def check_target_dir(target_path: str) -> dict:
     logger = logging.getLogger()
-    
-    file_names = [
-        'OpenReconSchema_1.1.0.json',
-        'i2i.py',
-        'i2i_json_ui.json',
-    ]
 
-    if os.path.exists(from_siemens_dir):
-        logger.info(f'`from_siemens` dir found : {from_siemens_dir}')
+    # files to find
+    json_ui_pattern = '*_json_ui.json'
+    schema_pattern  = 'OpenReconSchema_*.json'
+    json_ui_list = glob.glob(os.path.join(target_path, json_ui_pattern))
+    schema_list  = glob.glob(os.path.join(target_path, schema_pattern ))
+
+    if len(json_ui_list) == 1:
+        logger.info(f'Found JSON UI file : {json_ui_list[0]}')
     else:
-        os.mkdir(from_siemens_dir)
-        logger.critical(f'`from_siemens` dir created : you need to add inside 3 files : {", ".join(file_names)}, ')
+        logger.error(f'Found {len(json_ui_list)}/1 JSON UI file with pattern {json_ui_pattern} in {target_path}')
         sys.exit(1)
 
-    for file in file_names:
-        pth = os.path.join(from_siemens_dir, file)
-        if os.path.exists(pth):
-            logger.info(f'`{file}` found : {pth}')
-        else:
-            logger.critical(f'`{file}` NOT found : please get form Siemens (magnetom.net) and copy in the dir `{from_siemens_dir}`')
+    if len(schema_list) == 1:
+        logger.info(f'Found OpenReconSchema file : {schema_list[0]}')
+    else:
+        logger.error(f'Found {len(schema_list)}/1 OpenReconSchema file with pattern {schema_pattern} in {target_path}')
+        sys.exit(1)
 
+    process_name = os.path.splitext( os.path.basename(json_ui_list[0]) )[0].replace('_json_ui', '')
+    schema_name  = os.path.splitext( os.path.basename( schema_list[0]) )[0]
+
+    # fetch the .py process
+    process_path = os.path.join(target_path, f'{process_name}.py')
+    if os.path.exists(process_path):
+        logger.info(f'Found .py process file : {process_path}')
+       
+    else:
+        logger.error(f'.py process not found : {process_path}')
+        sys.exit(1)
+
+    target_data = {
+        'name' : {
+            'process': process_name,
+            'schema' :  schema_name,
+        },
+        'path': {
+            'process' : process_path,
+            'ui_json' : json_ui_list[0],
+            'schema'  :  schema_list[0],
+        }
+    }
+    pprint.pprint(target_data, sort_dicts=False)
+
+    return target_data
+        
 
 def create_pdf(file_path: str, lines_of_text: list[str]) -> None:
     pdf_header = b'%PDF-1.4\n'
@@ -163,7 +191,7 @@ def create_pdf(file_path: str, lines_of_text: list[str]) -> None:
         f.write(trailer)
 
 
-def main():
+def main(args: argparse.Namespace):
 
     #############
     ### setup ###
@@ -196,10 +224,10 @@ def main():
     clone_server(repo_path)
     build_server(repo_dockerfile_path)
 
-    # from_siemens
-    print_section('`from_siemens` dir and its content')
-    from_siemens_dir = os.path.join(cwd, 'from_siemens')
-    check_from_siemens(from_siemens_dir)
+    # target dir
+    target_path = os.path.join(cwd, args.dirname)
+    print_section(f'Check "target" dir and its content : {target_path}')
+    target_data = check_target_dir(target_path)
 
     #############
     ### build ###
@@ -217,59 +245,54 @@ def main():
         logger.info(f'`build` dir created : {build_path}')
 
     # prep some paths
-    siemens_schema_json_path = os.path.join(from_siemens_dir, 'OpenReconSchema_1.1.0.json')
-    siemens_ui_json_path     = os.path.join(from_siemens_dir, 'i2i_json_ui.json'          )
-    siemens_py_path          = os.path.join(from_siemens_dir, 'i2i.py'                    )
-    build_ui_json_path       = os.path.join(build_path      , 'i2i_json_ui.json'          )
-    build_py_path            = os.path.join(build_path      , 'i2i.py'                    )
-    build_pdf_path           = os.path.join(build_path      , 'i2i.pdf'                   )
+    build_data = {
+        'name': {
+            'docker': '',
+            'base'  : '',
+        },
+        'path': {
+            'process' : target_data['path']['process'].replace(target_path, build_path),
+            'ui_json' : target_data['path']['ui_json'].replace(target_path, build_path),
+            'schema'  : target_data['path']['schema' ].replace(target_path, build_path),
+            'pdf'     : ''
+        }
+    }
+    pprint.pprint(build_data, sort_dicts=False)
 
-    # get SDK JSON content and modify it for this demo
-    logger.info(f'load UI JSON content : {siemens_ui_json_path}')
-    with open(siemens_ui_json_path, 'r') as fid:
+    # copy files in the `build` dir
+    to_copy = [
+        # [src dst]
+        [target_data['path']['process'], build_data['path']['process']],
+        [target_data['path']['ui_json'], build_data['path']['ui_json']],
+        [target_data['path']['schema' ], build_data['path']['schema' ]],
+    ]
+    for src_dst in to_copy:
+        logger.info(f'copy : SRC={src_dst[0]} DST={src_dst[1]}')
+        shutil.copy(src=src_dst[0],dst=src_dst[1])
+
+    # load JSON UI
+    logger.info(f'load UI JSON content : {build_data['path']['ui_json']}')
+    with open(build_data['path']['ui_json'], 'r') as fid:
         json_content = json.load(fid)
 
     # prep info
-    cmdline  = 'CMD [ "python3", "/opt/code/python-ismrmrd-server/main.py", "-v", "-H=0.0.0.0", "-p=9002", "-l=/tmp/python-ismrmrd-server.log", "--defaultConfig=i2i"]'
-    version                         = '1.2.3' # major.minor.patch
-    vendor                          = 'openrecon-template'
-    name                            = 'i2i-openrecon-template'
-    manufacturer_address            = 'AdressOf openrecon-template'
-    mad_in                          = 'TheInternet'
-    gtin                            = 'myGTIN'
-    udi                             = 'myUDI'
-    safety_advices                  = ''
-    special_operating_instructions  = ''
-    additional_relevant_information = ''
+    cmdline  = f'CMD [ "python3", "/opt/code/python-ismrmrd-server/main.py", "-v", "-H=0.0.0.0", "-p=9002", "-l=/tmp/python-ismrmrd-server.log", "--defaultConfig={target_data['name']['process']}"]'
+    version                         = json_content['general']['version']
+    vendor                          = json_content['general']['vendor' ]
+    name                            = json_content['general']['id'     ]
 
     # other file/path
-    dockerfile_basename = f'OpenRecon_{vendor}_{name}:V{version}'.lower()
-    basename            = f'OpenRecon_{vendor}_{name}_V{version}'
-    build_docker_path   = os.path.join(build_path, f'{basename}.Dockerfile')
-    build_zip_path      = os.path.join(build_path, f'{basename}.zip')
-
-    # update content
-    json_content['general']['name'       ]['en'] = name
-    json_content['general']['version'    ]       = version
-    json_content['general']['vendor'     ]       = vendor
-    json_content['general']['information']['en'] = name + '_' + version
-    json_content['general']['id'         ]       = name
-    json_content['general']['regulatory_information']['device_trade_name'              ] = name
-    json_content['general']['regulatory_information']['production_identifier'          ] = name + '_' + version
-    json_content['general']['regulatory_information']['manufacturer_address'           ] = manufacturer_address
-    json_content['general']['regulatory_information']['made_in'                        ] = mad_in
-    json_content['general']['regulatory_information']['manufacture_date'               ] = datetime.datetime.today().strftime('%Y-%m-%d')
-    json_content['general']['regulatory_information']['material_number'                ] = name + '_' + version
-    json_content['general']['regulatory_information']['gtin'                           ] = gtin
-    json_content['general']['regulatory_information']['udi'                            ] = udi
-    json_content['general']['regulatory_information']['safety_advices'                 ] = safety_advices
-    json_content['general']['regulatory_information']['special_operating_instructions' ] = special_operating_instructions
-    json_content['general']['regulatory_information']['additional_relevant_information'] = additional_relevant_information
-    # for more info, check `OpenReconJsonConfig.pdf`
+    build_data['name']['docker'] = f'OpenRecon_{vendor}_{name}:V{version}'.lower()
+    build_data['name']['base'  ] = f'OpenRecon_{vendor}_{name}_V{version}'
+    build_data['path']['docker'] = os.path.join(build_path, f'{build_data['name']['base']}.Dockerfile')
+    build_data['path']['tar'   ] = os.path.join(build_path, f'{build_data['name']['base']}.tar')
+    build_data['path']['zip'   ] = os.path.join(build_path, f'{build_data['name']['base']}.zip')
+    build_data['path']['pdf'   ] = os.path.join(build_path, f'{build_data['name']['base']}.pdf')
+    pprint.pprint(build_data, sort_dicts=False)
 
     # load JSON Schema, to check if our updated JSON is ok
-    logger.info(f'load JSON Schema : {siemens_schema_json_path}')
-    with open(file=siemens_schema_json_path, mode='r') as fid:
+    logger.info(f'load JSON Schema : {build_data['path']['schema']}')
+    with open(file=build_data['path']['schema'], mode='r') as fid:
         schema_content = json.load(fp=fid)
     validator = jsonschema.Draft7Validator(schema=schema_content)
     errors = list(validator.iter_errors(instance=json_content))
@@ -281,19 +304,11 @@ def main():
     logger.info(f'No error in out JSON compared against the Schema')
 
     # write the updated json in the `build` dir
-    logger.info(f'write update UI JSON content : {build_ui_json_path}')
-    with open(file=build_ui_json_path, mode='w') as fid:
-        json.dump(obj=json_content, fp=fid, indent=4)
     encoded_json_content = base64.b64encode((json.dumps(obj=json_content,indent=2)).encode('utf-8')).decode('utf-8')
-
-    # copy the python module MRD `client` to execute
-    logger.info(f'copy : SRC={siemens_py_path} DST={build_py_path}')
-    shutil.copy(src=siemens_py_path,dst=build_py_path)
-    logger.info(f'the `build` .py file will be latter added in the Docker image : {build_py_path}')
-
+    
     # write the Dockerfile content
-    logger.info(f'Write `build` Dockerfile : {build_docker_path}')
-    with open(file=build_docker_path, mode='w') as fid:
+    logger.info(f'Write `build` Dockerfile : {build_data['path']['docker']}')
+    with open(file=build_data['path']['docker'], mode='w') as fid:
         fid.writelines([
             '# import python-ismrmrd-server as starting point \n',
             f'FROM python-ismrmrd-server \n',
@@ -304,7 +319,7 @@ def main():
             '\n'])
         fid.writelines([
             '# copy the .py module \n',
-            f'COPY {os.path.relpath(build_py_path, cwd)}  /opt/code/python-ismrmrd-server \n',
+            f'COPY {os.path.relpath(target_data['path']['process'], cwd)}  /opt/code/python-ismrmrd-server \n',
             '\n'])
         fid.writelines([
             '# new CMD line \n',
@@ -312,13 +327,12 @@ def main():
             '\n'])
         
     # build docker image
-    logger.info(f'building docker image `{dockerfile_basename}` from Docker file {build_docker_path}')
-    subprocess.run(['docker', 'build', '--tag', dockerfile_basename, '--file', build_docker_path, cwd], check=True)
+    logger.info(f'building docker image `{build_data['name']['docker']}` from Docker file {build_data['path']['docker']}')
+    subprocess.run(['docker', 'build', '--tag', build_data['name']['docker'], '--file', build_data['path']['docker'], cwd], check=True)
 
     # save docker image in a .tar
-    build_tar_path = os.path.join(build_path, f'{basename}.tar')
-    logger.info(f'(1/2) saving image `{dockerfile_basename}` in a .tar {build_tar_path}')
-    subprocess.run(['docker', 'save', '-o', build_tar_path, dockerfile_basename], check=True)
+    logger.info(f'(1/2) saving image `{build_data['name']['docker']}` in a .tar {build_data['path']['tar']}')
+    subprocess.run(['docker', 'save', '-o', build_data['path']['tar'], build_data['name']['docker']], check=True)
     logger.info(f'(2/2) saving image DONE')
 
     # generate PDF
@@ -327,13 +341,12 @@ def main():
         f'name={name}',
         f'version={version}',
     ]
-    build_pdf_path = os.path.join(build_path, f'{basename}.pdf')
-    logger.info(f'write PDF file : {build_pdf_path}')
-    create_pdf(file_path=build_pdf_path, lines_of_text=lines)
+    logger.info(f'write PDF file : {build_data['path']['pdf']}')
+    create_pdf(file_path=build_data['path']['pdf'], lines_of_text=lines)
 
     # save everything in a ZIP file
-    logger.info(f'(1/2) zip all files : {build_zip_path}')
-    subprocess.run(['zip', basename+'.zip', basename+'.tar', basename+'.pdf'], check=True, cwd=build_path)
+    logger.info(f'(1/2) zip all files : {build_data['path']['zip']}')
+    subprocess.run(['zip', build_data['name']['base']+'.zip', build_data['name']['base']+'.tar', build_data['name']['base']+'.pdf'], check=True, cwd=build_path)
     logger.info(f'(1/2) zip all files DONE')
 
     # END
@@ -342,4 +355,25 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+
+    parser = argparse.ArgumentParser(
+        prog            = 'build',
+        description     = 'Build OpenRecon app',
+        formatter_class = argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    def dir_path(input_dir):
+        if os.path.isdir(input_dir):
+            return input_dir
+        else:
+            raise argparse.ArgumentTypeError(f"Not a valid path : {input_dir}")
+    parser.add_argument(
+        '--dirname',
+        type    = dir_path,
+        help    = 'Application directory name. ex: `demo-i2i`, `app`',
+        default = 'demo-i2i'
+    )
+
+    args = parser.parse_args()
+
+    main(args)

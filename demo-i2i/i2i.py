@@ -1,16 +1,21 @@
+# Copyright Siemens Healthineers AG
+# License-Identifier: see LICENSE
+# Version Mar 11th 2024
+
 import ismrmrd
 import os
+import itertools
 import logging
 import traceback
 import numpy as np
 import numpy.fft as fft
 import xml.dom.minidom
 import base64
+import ctypes
+import re
 import mrdhelper
 import constants
 from time import perf_counter
-from connection import Connection
-
 
 # Folder for debug output files
 debugFolder = "/tmp/share/debug"
@@ -99,8 +104,7 @@ def process(connection, config, metadata):
         except:
             logging.error("Failed to send close message!")
 
-def process_image(images: list[ismrmrd.Image], connection: Connection, config: dict | str, metadata: ismrmrd.xsd.ismrmrdschema.ismrmrd.ismrmrdHeader):
-    # DEBUG: config = {'version': '1.1.0', 'parameters': {'double': '1', 'customconfig': '', 'freetext': 'Open Recon rocks', 'config': 'invertcontrast', 'options': 'none'}}
+def process_image(images, connection, config, metadata):
     if len(images) == 0:
         return []
 
@@ -110,15 +114,6 @@ def process_image(images: list[ismrmrd.Image], connection: Connection, config: d
         logging.debug("Created folder " + debugFolder + " for debug output files")
 
     logging.debug("Processing data with %d images of type %s", len(images), ismrmrd.get_dtype_from_data_type(images[0].data_type))
-
-    # parse options
-    if ('parameters' in config) and ('SaveOriginalImages' in config['parameters']):
-        param_saveoriginalimages = True
-    else:
-        param_saveoriginalimages = False
-
-    if param_saveoriginalimages:
-        images_ORIG = images.copy()
 
     # Note: The MRD Image class stores data as [cha z y x]
 
@@ -191,7 +186,6 @@ def process_image(images: list[ismrmrd.Image], connection: Connection, config: d
 
         # Create a copy of the original ISMRMRD Meta attributes and update
         tmpMeta = meta[iImg]
-        tmpMeta['SeriesDescription']              = metadata.measurementInformation.protocolName + '_invertcontrast'
         tmpMeta['DataRole']                       = 'Image'
         tmpMeta['ImageProcessingHistory']         = ['PYTHON', 'INVERT']
         tmpMeta['WindowCenter']                   = str((maxVal+1)/2)
@@ -221,10 +215,7 @@ def process_image(images: list[ismrmrd.Image], connection: Connection, config: d
 
         imagesOut[iImg].attribute_string = metaXml
 
-    if param_saveoriginalimages:
-        return images_ORIG + imagesOut
-    else:
-        return               imagesOut
+    return imagesOut
 
 # Create an example ROI <3
 def create_example_roi(img_size):

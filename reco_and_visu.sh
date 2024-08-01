@@ -15,6 +15,6 @@ python python-ismrmrd-server/client.py -o $OUT_DIR/OR_$DATASET_NAME.h5 -c $TARGE
 # convert fresh OR processed MRD dataset into DICOM for visu
 python python-ismrmrd-server/mrd2dicom.py -o $OUT_DIR/ $OUT_DIR/OR_$DATASET_NAME.h5
 
-# use  your favorite DICOM viewer
+# use your favorite DICOM viewer
 mrview $OUT_DIR/ -mode 2
 
