@@ -194,6 +194,7 @@ def process_image(images: list[ismrmrd.Image], connection: Connection, config: d
 
         # Create a copy of the original ISMRMRD Meta attributes and update
         tmpMeta = meta[iImg]
+        tmpMeta['SeriesDescription']              = metadata.measurementInformation.protocolName + '_invertcontrast'
         tmpMeta['DataRole']                       = 'Image'
         tmpMeta['ImageProcessingHistory']         = ['PYTHON', 'INVERT']
         tmpMeta['WindowCenter']                   = str((maxVal+1)/2)
