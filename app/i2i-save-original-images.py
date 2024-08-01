@@ -101,6 +101,7 @@ def process(connection, config, metadata):
 
 def process_image(images: list[ismrmrd.Image], connection: Connection, config: dict | str, metadata: ismrmrd.xsd.ismrmrdschema.ismrmrd.ismrmrdHeader):
     # DEBUG: config = {'version': '1.1.0', 'parameters': {'double': '1', 'customconfig': '', 'freetext': 'Open Recon rocks', 'config': 'invertcontrast', 'options': 'none'}}
+    
     if len(images) == 0:
         return []
 
@@ -112,10 +113,11 @@ def process_image(images: list[ismrmrd.Image], connection: Connection, config: d
     logging.debug("Processing data with %d images of type %s", len(images), ismrmrd.get_dtype_from_data_type(images[0].data_type))
 
     # parse options
+    param_saveoriginalimages = False
     if ('parameters' in config) and ('SaveOriginalImages' in config['parameters']):
-        param_saveoriginalimages = True
+        param_saveoriginalimages = config['parameters']['SaveOriginalImages']
     else:
-        param_saveoriginalimages = False
+        logging.warning("config['parameters']['SaveOriginalImages'] NOT FOUND !!")
 
     if param_saveoriginalimages:
         images_ORIG = images.copy()
@@ -191,12 +193,11 @@ def process_image(images: list[ismrmrd.Image], connection: Connection, config: d
 
         # Create a copy of the original ISMRMRD Meta attributes and update
         tmpMeta = meta[iImg]
-        tmpMeta['SeriesDescription']              = metadata.measurementInformation.protocolName + '_invertcontrast'
         tmpMeta['DataRole']                       = 'Image'
         tmpMeta['ImageProcessingHistory']         = ['PYTHON', 'INVERT']
         tmpMeta['WindowCenter']                   = str((maxVal+1)/2)
         tmpMeta['WindowWidth']                    = str((maxVal+1))
-        tmpMeta['SequenceDescriptionAdditional']  = 'OPENRECON'
+        tmpMeta['SequenceDescriptionAdditional']  = 'OPENRECON_invertcontrast'
         tmpMeta['Keep_image_geometry']            = 1
 
         if ('parameters' in config) and ('options' in config['parameters']):
