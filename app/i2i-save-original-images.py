@@ -1,15 +1,17 @@
 import ismrmrd
 import os
+import itertools
 import logging
 import traceback
 import numpy as np
 import numpy.fft as fft
 import xml.dom.minidom
 import base64
+import ctypes
+import re
 import mrdhelper
 import constants
 from time import perf_counter
-from connection import Connection
 
 
 # Folder for debug output files
@@ -99,8 +101,7 @@ def process(connection, config, metadata):
         except:
             logging.error("Failed to send close message!")
 
-def process_image(images: list[ismrmrd.Image], connection: Connection, config: dict | str, metadata: ismrmrd.xsd.ismrmrdschema.ismrmrd.ismrmrdHeader):
-    # DEBUG: config = {'version': '1.1.0', 'parameters': {'double': '1', 'customconfig': '', 'freetext': 'Open Recon rocks', 'config': 'invertcontrast', 'options': 'none'}}
+def process_image(images, connection, config, metadata):
     
     if len(images) == 0:
         return []
@@ -112,12 +113,23 @@ def process_image(images: list[ismrmrd.Image], connection: Connection, config: d
 
     logging.debug("Processing data with %d images of type %s", len(images), ismrmrd.get_dtype_from_data_type(images[0].data_type))
 
-    # parse options
     param_saveoriginalimages = False
     if ('parameters' in config) and ('SaveOriginalImages' in config['parameters']):
-        param_saveoriginalimages = config['parameters']['SaveOriginalImages']
+        logging.debug(f"type of config['parameters']['SaveOriginalImages'] is {type(config['parameters']['SaveOriginalImages'])}")
+
+        if type(config['parameters']['SaveOriginalImages']) is str:
+            if   config['parameters']['SaveOriginalImages'].lower() == 'true' :
+                param_saveoriginalimages = True
+            elif config['parameters']['SaveOriginalImages'].lower() == 'false':
+                param_saveoriginalimages = False
+
+        elif type(config['parameters']['SaveOriginalImages']) is bool:
+            param_saveoriginalimages = config['parameters']['SaveOriginalImages']
+        
     else:
         logging.warning("config['parameters']['SaveOriginalImages'] NOT FOUND !!")
+
+    logging.debug(f'param_saveoriginalimages = {param_saveoriginalimages}')
 
     if param_saveoriginalimages:
         images_ORIG = images.copy()
