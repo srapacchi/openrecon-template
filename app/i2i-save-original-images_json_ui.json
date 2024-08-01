@@ -37,7 +37,7 @@
   },
   "parameters": [
     {
-      "id": "checkbox",
+      "id": "SaveOriginalImages",
       "label": { "en": "Save original images" },
       "type": "boolean",
       "information": { "en": "" },

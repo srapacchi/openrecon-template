@@ -12,6 +12,8 @@ import re
 import mrdhelper
 import constants
 from time import perf_counter
+from connection import Connection
+
 
 # Folder for debug output files
 debugFolder = "/tmp/share/debug"
@@ -100,7 +102,8 @@ def process(connection, config, metadata):
         except:
             logging.error("Failed to send close message!")
 
-def process_image(images, connection, config, metadata):
+def process_image(images: list[ismrmrd.Image], connection: Connection, config: dict | str, metadata: ismrmrd.xsd.ismrmrdschema.ismrmrd.ismrmrdHeader):
+    # DEBUG: config = {'version': '1.1.0', 'parameters': {'double': '1', 'customconfig': '', 'freetext': 'Open Recon rocks', 'config': 'invertcontrast', 'options': 'none'}}
     if len(images) == 0:
         return []
 
@@ -110,6 +113,15 @@ def process_image(images, connection, config, metadata):
         logging.debug("Created folder " + debugFolder + " for debug output files")
 
     logging.debug("Processing data with %d images of type %s", len(images), ismrmrd.get_dtype_from_data_type(images[0].data_type))
+
+    # parse options
+    if ('parameters' in config) and ('SaveOriginalImages' in config['parameters']):
+        param_saveoriginalimages = True
+    else:
+        param_saveoriginalimages = False
+
+    if param_saveoriginalimages:
+        images_ORIG = images.copy()
 
     # Note: The MRD Image class stores data as [cha z y x]
 
@@ -151,9 +163,6 @@ def process_image(images, connection, config, metadata):
     # Invert image contrast
     data = maxVal-data
     data = np.abs(data)
-    ##########################################################################
-    np.random.shuffle(data)
-    ##########################################################################
     np.save(debugFolder + "/" + "imgInverted.npy", data)
 
     currentSeries = 0
@@ -214,7 +223,10 @@ def process_image(images, connection, config, metadata):
 
         imagesOut[iImg].attribute_string = metaXml
 
-    return imagesOut
+    if param_saveoriginalimages:
+        return images_ORIG + imagesOut
+    else:
+        return               imagesOut
 
 # Create an example ROI <3
 def create_example_roi(img_size):
