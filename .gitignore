@@ -1,7 +1,8 @@
 # local stuff
 python-ismrmrd-server/
-from_siemens/
 build/
+data/
+ExampleData/
 
 ########################################
 
