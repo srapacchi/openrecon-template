@@ -201,6 +201,12 @@ def process_image(images, connection, config, metadata):
             if mrdhelper.extract_minihead_bool_param(base64.b64decode(meta[iImg]['IceMiniHead']).decode('utf-8'), 'BIsSeriesEnd') is True:
                 currentSeries += 1
 
+        if param_saveoriginalimages:
+            oldHeader.image_series_index += 1
+        logging.debug(f'image_series_index = {oldHeader.image_series_index}')
+        logging.debug(f'image_index        = {oldHeader.image_index       }')
+        logging.debug(f'slice              = {oldHeader.slice             }')
+
         imagesOut[iImg].setHead(oldHeader)
 
         # Create a copy of the original ISMRMRD Meta attributes and update
