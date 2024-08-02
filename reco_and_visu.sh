@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## path mangement
+## path management
 IN_DIR=data/in
 OUT_DIR=data/out
 DATASET_NAME=test
