@@ -10,7 +10,7 @@
         "production_identifier":"1.0.0",
         "manufacturer_address":"https://github.com/benoitberanger/openrecon-template",
         "made_in":"TheInternet",
-        "manufacture_date":"2023-08-01",
+        "manufacture_date":"2023-08-02",
         "material_number":"i2i-save-original-images_1.0.0",
         "gtin":"",
         "udi":"",
@@ -51,27 +51,13 @@
         }
       ],
       "default": "i2i-save-original-images",
-      "information": { "en": "Define the config to be executed by MRD server" }
-    },
-    {
-      "id": "customconfig",
-      "label": { "en":"Custom Config" },
-      "type": "string",
-      "information": { "en": "Custom config file not listed in drop-down menu" },
-      "default": ""
-    },
-    {
-      "id": "freetext",
-      "label": { "en":"freetext" },
-      "type": "string",
-      "information": { "en": "Free text data" },
-      "default": ""
+      "information": { "en": "Define the config to be executed by the MRD server" }
     },
     {
       "id": "SaveOriginalImages",
       "label": { "en": "Save original images" },
       "type": "boolean",
-      "information": { "en": "" },
+      "information": { "en": "This option will send both original (no suffix) and processed images (with suffix)" },
       "default": true
     }
   ]

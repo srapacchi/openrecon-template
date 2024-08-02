@@ -1,14 +1,11 @@
 import ismrmrd
 import os
-import itertools
 import logging
 import traceback
 import numpy as np
 import numpy.fft as fft
 import xml.dom.minidom
 import base64
-import ctypes
-import re
 import mrdhelper
 import constants
 from time import perf_counter
@@ -128,7 +125,6 @@ def process_image(images, connection, config, metadata):
         
     else:
         logging.warning("config['parameters']['SaveOriginalImages'] NOT FOUND !!")
-
     logging.debug(f'param_saveoriginalimages = {param_saveoriginalimages}')
 
     if param_saveoriginalimages:
@@ -154,22 +150,17 @@ def process_image(images, connection, config, metadata):
     logging.debug("Original image data is size %s" % (data.shape,))
     np.save(debugFolder + "/" + "imgOrig.npy", data)
 
-    if ('parameters' in config) and ('options' in config['parameters']) and (config['parameters']['options'] == 'complex'):
-        # Complex images are requested
-        data = data.astype(np.complex64)
-        maxVal = data.max()
-    else:
-        # Determine max value (12 or 16 bit)
-        BitsStored = 12
-        if (mrdhelper.get_userParameterLong_value(metadata, "BitsStored") is not None):
-            BitsStored = mrdhelper.get_userParameterLong_value(metadata, "BitsStored")
-        maxVal = 2**BitsStored - 1
+    # Determine max value (12 or 16 bit)
+    BitsStored = 12
+    if (mrdhelper.get_userParameterLong_value(metadata, "BitsStored") is not None):
+        BitsStored = mrdhelper.get_userParameterLong_value(metadata, "BitsStored")
+    maxVal = 2**BitsStored - 1
 
-        # Normalize and convert to int16
-        data = data.astype(np.float64)
-        data *= maxVal/data.max()
-        data = np.around(data)
-        data = data.astype(np.int16)
+    # Normalize and convert to int16
+    data = data.astype(np.float64)
+    data *= maxVal/data.max()
+    data = np.around(data)
+    data = data.astype(np.int16)
 
     # Invert image contrast
     data = maxVal-data
@@ -203,9 +194,10 @@ def process_image(images, connection, config, metadata):
 
         if param_saveoriginalimages:
             oldHeader.image_series_index += 1
-        logging.debug(f'image_series_index = {oldHeader.image_series_index}')
-        logging.debug(f'image_index        = {oldHeader.image_index       }')
-        logging.debug(f'slice              = {oldHeader.slice             }')
+        logging.debug(f'param_saveoriginalimages = {param_saveoriginalimages    }')
+        logging.debug(f'image_series_index       = {oldHeader.image_series_index}')
+        logging.debug(f'image_index              = {oldHeader.image_index       }')
+        logging.debug(f'slice                    = {oldHeader.slice             }')
 
         imagesOut[iImg].setHead(oldHeader)
 
@@ -217,15 +209,6 @@ def process_image(images, connection, config, metadata):
         tmpMeta['WindowWidth']                    = str((maxVal+1))
         tmpMeta['SequenceDescriptionAdditional']  = 'OPENRECON_invertcontrast'
         tmpMeta['Keep_image_geometry']            = 1
-
-        if ('parameters' in config) and ('options' in config['parameters']):
-            # Example for sending ROIs
-            if config['parameters']['options'] == 'roi':
-                tmpMeta['ROI_example'] = create_example_roi(data.shape)
-
-            # Example for setting colormap
-            if config['parameters']['options'] == 'colormap':
-                tmpMeta['LUTFileName'] = 'MicroDeltaHotMetal.pal'
 
         # Add image orientation directions to MetaAttributes if not already present
         if tmpMeta.get('ImageRowDir') is None:
@@ -244,23 +227,3 @@ def process_image(images, connection, config, metadata):
         return images_ORIG + imagesOut
     else:
         return               imagesOut
-
-# Create an example ROI <3
-def create_example_roi(img_size):
-    t = np.linspace(0, 2*np.pi)
-    x = 16*np.power(np.sin(t), 3)
-    y = -13*np.cos(t) + 5*np.cos(2*t) + 2*np.cos(3*t) + np.cos(4*t)
-
-    # Place ROI in bottom right of image, offset and scaled to 10% of the image size
-    x = (x-np.min(x)) / (np.max(x) - np.min(x))
-    y = (y-np.min(y)) / (np.max(y) - np.min(y))
-    x = (x * 0.08*img_size[0]) + 0.82*img_size[0]
-    y = (y * 0.10*img_size[1]) + 0.80*img_size[1]
-
-    rgb = (1,0,0)  # Red, green, blue color -- normalized to 1
-    thickness  = 1 # Line thickness
-    style      = 0 # Line style (0 = solid, 1 = dashed)
-    visibility = 1 # Line visibility (0 = false, 1 = true)
-
-    roi = mrdhelper.create_roi(x, y, rgb, thickness, style, visibility)
-    return roi
