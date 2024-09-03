@@ -4,7 +4,7 @@ This repo is a template made to help building OpenRecon apps.
 
 The puropose is to build the `i2i` demo provided by Siemens for the SDK on https://www.magnetom.net, using a single build script, without any modification.
 
-For later developments, the first step of a new OpenRecon project it to create a new repo based on this `openrecon-template`, then modify the `app` dir (or any other dir), to finnaly call the building process
+For later developments, the first step of a new OpenRecon project it to create a new repo based on this `openrecon-template`, then modify the `app` dir (or any other dir), to finnaly call the building process.
 
 
 # Requirement
@@ -25,7 +25,7 @@ Simply run the `build.py` script :
 ```bash
 python build.py
 ```
-It will bild the `demo-i2i` directory.
+It will build the `demo-i2i` directory.
 All output files will be in the `build` directory
 
 The script is quite verbose, helping troubleshooting at each step of the process in case of error.
@@ -112,7 +112,7 @@ Send data using `client.py`
 python python-ismrmrd-server/client.py -o <path_to_data>/out/reco_test.h5 -c <myrecon> <path_to_data>/in/test.h5 
 ```
 
-### Concert the output of your reco to DICOM for visu
+### Convert the output of your reco to DICOM for visualization
 ```bash
 python python-ismrmrd-server/mrd2dicom.py -o <path_to_data>/out/ <path_to_data>/out/reco_test.h5
 ```
