@@ -73,9 +73,9 @@ def check_docker() -> None:
     docker_version = matches[0].split('.')[0] # 20.21.22 -> 20
     maximum_docker_version = 25
     if int(docker_version) >= maximum_docker_version:
-        logger.info(f'Docker version {docker_version} is too high. Maximum recommended is {maximum_docker_version}')
-        #sys.exit(1)
-    logger.info(f'Docker version {docker_version}<{maximum_docker_version} is ok')
+        logger.info(f'Docker version {docker_version} is too high. Siemens allows maximum version: {maximum_docker_version}')
+        sys.exit(1)
+    logger.info(f'Docker version {docker_version}<={maximum_docker_version} is ok')
 
 
 def clone_server(repo_path: str) -> None:
