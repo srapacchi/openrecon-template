@@ -99,6 +99,16 @@ def build_server(repo_dockerfile_path: str) -> None:
             logger.info('docker image `python-ismrmrd-server` already built')
             return
 
+        # modification of the python-ismrmrd-server Dockerfile
+        commented_line = 'COPY . /opt/code/python-ismrmrd-server'
+        with open(repo_dockerfile_path, 'r') as fileR:
+            dockerfile_content = fileR.read()
+        if not '#'+commented_line in dockerfile_content:
+            with open(repo_dockerfile_path, 'w') as fileW:
+                modified_dockerfile_content = dockerfile_content.replace(commented_line, '#'+commented_line)
+                logger.info(f'in `python-ismrmrd-server`, commenting the line `{commented_line}`')
+                fileW.write(modified_dockerfile_content)
+
         # build docker image for python-ismrmrd-server
         # this image is the starting point, that will be refined latter
         logger.info('building docker image `python-ismrmrd-server`')
